@@ -1,0 +1,103 @@
+/*
+@import url(http://fonts.googleapis.com/css?family=Amatic+SC:400,700);
+*/
+
+@font-face {
+	font-family: FFFForward;
+	local: FFFForward;
+	src: url(../fonts/FFFForward.ttf);
+}
+
+body{
+	font-family: FFFForward, "Amatic SC";
+	padding: 0; 
+	margin: 0; 
+	overflow: hidden;
+}
+
+.url{
+	font-family: Helvetica, Arial, sans-serif;
+}
+
+body.server,
+body.client {
+	background-color: #000;
+	color: white;
+}
+
+#area{
+	position: absolute;
+	top: 80px;
+	left: 10px;
+	right: 10px;
+	bottom: 10px;
+	
+	background: #EADCB7;
+}
+
+#info{
+	height: 100px;
+	width: 140px;
+	position: absolute;
+	top: 50%;
+	left: 50%;
+	margin: -50px -70px;
+	white-space: pre;
+	
+	font-size: 22px;
+}
+
+#title{
+	font-size: 45px;
+	margin: 10px 10px;
+}
+
+
+#footer {
+	margin-top: 20px;
+}
+
+
+img#fh_logo {
+	float: left;
+	margin-left: 35px;
+	height: 100px;
+	width: 548px;
+	margin-top: 20px;
+}
+
+img#viel_drin {
+	float: right;
+	margin-right: 35px;
+	height: 140px;
+	width: 388px;
+}
+
+
+
+#qrcode_container{
+	position: absolute;
+	top:50%;
+	left:0;
+	width: 100%;
+}
+
+#qrcode_left,
+#qrcode_right {
+	text-align: center;
+	width: 50%;
+	display: inline-block;
+	margin: -25% 0;
+	opacity: 1;
+	
+	-webkit-transition: all .5s;
+	   -moz-transition: all .5s;
+	    -ms-transition: all .5s;
+	     -o-transition: all .5s;
+	        transition: all .5s;
+}
+
+#qrcode_left.hidden,
+#qrcode_right.hidden {
+	opacity: 0;
+}

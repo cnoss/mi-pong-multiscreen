@@ -1,0 +1,27 @@
+<!DOCTYPE html>
+<html>
+	<head>
+		<title>Pong | Server</title>
+		
+		<meta charset="utf-8">
+		<meta name="viewport" content="initial-scale=1.0, user-scalable=no">
+		<link rel="stylesheet" href="./assets/css/main.css"></link>
+	</head>
+	<body class="server">
+		<canvas id="canvas"></canvas>
+		
+		<div id="qrcode_container">
+			<div id="qrcode_left"></div><!--
+			--><div id="qrcode_right"></div>
+		</div>
+		
+		<div id="footer">
+		    <img src="./assets/imgs/fh_logo.png" id="fh_logo" alt="Logo FH Köln" />
+		    <img src="./assets/imgs/box_voll_viel_drin_bunt.png" id="viel_drin" alt="Viel Drin" />
+		<div>
+		<script src="./assets/lib/socket.io.min.js"></script>
+		<script src="./assets/lib/qr.js"></script>
+		<script src="./assets/js/server.js"></script>
+		<script src="https://apis.google.com/js/client.js?onload=init"></script>
+	</body>
+</html>
