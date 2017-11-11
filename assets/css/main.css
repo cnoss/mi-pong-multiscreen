@@ -23,7 +23,7 @@ body.server,
 body.client {
 	background-color: #000;
 	color: white;
-	height: 80vh;
+	height: 85vh;
 }
 
 #area{
@@ -48,7 +48,7 @@ body.client {
 }
 
 #title{
-	font-size: 8px;
+	font-size: 38px;
 	margin: 10px 10px;
   margin-top: 20px;
   margin-left: 14px;

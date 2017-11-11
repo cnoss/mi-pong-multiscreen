@@ -248,13 +248,20 @@ var ball = new function(){
 	var self = this;
 	var ctx  = canvas.ctx;
 	var startOnLeftSide = true;
+	var w=window,
+	d=document,
+	e=d.documentElement,
+	g=d.getElementsByTagName('body')[0],
+	x=w.innerWidth||e.clientWidth||g.clientWidth,
+	y=w.innerHeight||e.clientHeight||g.clientHeight;
+	var speed = x / 128;
 	
 	self.init = function(){
 		self.x  = (startOnLeftSide) ? 100: canvas.w - 100;
 		self.y  = (canvas.h - 140) * Math.random() + 70;
 		self.r  = 10;
-		self.vx = 8;
-		self.vy = 8 * (startOnLeftSide) ? 1: -1;
+		self.vx = speed;
+		self.vy = speed * (startOnLeftSide) ? 1: -1;
 		
 		if(!startOnLeftSide) {
 			self.switchX();
@@ -278,8 +285,8 @@ var ball = new function(){
 	
 	self.speedUp = function() {
 		if(Math.abs(self.vx) < 15) {
-			self.vx += (self.vx < 0) ? -0.25 : 0.25;
-			self.vy += (self.vy < 0) ? -0.25 : 0.25;
+			self.vx += (self.vx < 0) ? -0.5 : 0.5;
+			self.vy += (self.vy < 0) ? -0.5 : 0.5;
 		}
 	};
 	
@@ -321,7 +328,7 @@ var ball = new function(){
 			pad.draw();
 			ball.draw();
 			
-			if(padWinner.wins === 3) {
+			if(padWinner.wins === 300) {
 				gameOverer.start(padWinner, padWinnerIndex);
 				pad.list[0].wins = 0;
 				pad.list[1].wins = 0;
@@ -352,7 +359,12 @@ var ball = new function(){
 				self.switchX();
 				self.speedUp();
 				
-				connect.socket.emit('connectTo', connect.id, connect.user);
+				var user = (self.x < canvas.w/2) ? "playerOne" : "playerTwo";
+				var msg = JSON.stringify({
+					type: 'notify',
+					user: user
+				});
+				connect.socket.send(msg, connect.user);
 				gamesound.triggerAttackRelease( "G5", 0.1);
 				
 				particle.create({
@@ -567,10 +579,6 @@ el.addEventListener("mousemove", function(e){
 el.addEventListener("mousedown", btnClick, true);
 */
 
-
-
-
-
 // Start Button object
 var startBtn = {
 	w: 120,
@@ -579,9 +587,8 @@ var startBtn = {
 	y: canvas.h/2 - 25,
 	
 	draw: function() {
-		return;
+		return true;
 		var ctx = canvas.ctx;
-		
 		ctx.clearRect(this.x - 15, this.y - 25, this.w + 30, this.h + 55);
 		
 		ctx.strokeStyle = "#ffffff";
@@ -604,15 +611,14 @@ var restartBtn = {
 	y: canvas.h/2 + 100,
 	
 	draw: function() {
-		return;
-		
+		return false;
 		var ctx = canvas.ctx;
 		
 		restartBtn.x = canvas.w/2 - 50;
 		restartBtn.y = canvas.h/2 + 100;
 		
 		ctx.strokeStyle = "#ffffff";
-		ctx.lineWidth = "2";
+		ctx.lineWidth = "12";
 		ctx.strokeRect(this.x, this.y, this.w, this.h);
 		
 		ctx.font = "20px FFFForward, sans-serif";
@@ -685,10 +691,7 @@ var gameOverer = new function() {
 		ctx.fillStyle = "#ffffff";
 		ctx.font = "30px FFFForward, sans-serif";
 		ctx.fillText("next Game in "+ currCountdown, canvas.w/2, canvas.h/2 + 140 );
-		
-		
-		
-		
+
 	}
 };
 
@@ -723,9 +726,11 @@ function gameOver(padWinner, playerIndex) {
 
 // Function to execute at startup
 function startScreen() {
+
 	qrcoder.create();
 	game.init();
 	startBtn.draw();
+	
 }
 
 // On button click (Restart and start)
@@ -733,7 +738,7 @@ function btnClick(e) {
 	// Variables for storing mouse position on click
 	var mx = e.pageX,
 		my = e.pageY;
-	
+
 	// Click start button
 	if(startBtn
 		&& mx >= startBtn.x && mx <= startBtn.x + startBtn.w

@@ -12,8 +12,16 @@ connect.socket	= io.connect(connect.uri+':'+connect.port);
 
 connect.socket.on('member', function(data) { 
 	console.log(data); 
-	gamesound.triggerAttackRelease( "G5", 0.1);
+	
 });
+
+connect.socket.on('message', function(data) {
+	var data = JSON.parse(data);
+	if (data.type === 'notify' && data.user === connect.user) {
+		gamesound.triggerAttackRelease( "G5", 0.1);
+	}
+});
+
 connect.socket.emit('connectTo', connect.id, connect.user);
 
 //create a synth and connect it to the master output (your speakers)
