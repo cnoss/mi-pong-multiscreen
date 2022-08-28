@@ -4,7 +4,7 @@
   "description": "Kleine Demo Pong für Multiuser Experience",
   "main": "index.js",
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "dev": "echo 'Run: http://localhost:8080/server.html\n\n' && npx http-server"
   },
   "repository": {
     "type": "git",
@@ -16,7 +16,7 @@
     "url": "https://github.com/cnoss/mi-pong-multiscreen/issues"
   },
   "homepage": "https://github.com/cnoss/mi-pong-multiscreen#readme",
-  "dependencies": {
-    "socket.io": "^4.5.1"
+  "devDependencies": {
+    "http-server": "^14.1.1"
   }
 }
