@@ -5,11 +5,8 @@ var connect = {}
 connect.id		= (location.search.replace('?', '').split('__'))[0];
 connect.user	= (location.search.replace('?', '').split('__'))[1];//'user' + (Math.random()*0xFFFFFF<<0).toString(16);
 
-connect.port	= 48566;
-//connect.uri		= 'http://' + location.hostname.replace('http://', '');
-connect.uri		= 'http://perasmus.serpens.uberspace.de'; //'http://localhost';
-connect.socket	= io.connect(connect.uri+':'+connect.port);
-
+connect.uri		= 'https://perasmus.serpens.uberspace.de'; //'http://localhost';
+connect.socket	= io.connect(connect.uri);
 connect.socket.on('member', function(data) { 
 	console.log(data); 
 	

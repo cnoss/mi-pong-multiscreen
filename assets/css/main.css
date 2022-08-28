@@ -1,15 +1,8 @@
-/*
-@import url(http://fonts.googleapis.com/css?family=Amatic+SC:400,700);
-*/
 
-@font-face {
-	font-family: FFFForward;
-	local: FFFForward;
-	src: url(../fonts/FFFForward.ttf);
-}
+@import url(http://fonts.googleapis.com/css?family=Amatic+SC:400,700);
 
 body{
-	font-family: FFFForward, "Amatic SC";
+	font-family: "Amatic SC";
 	padding: 0; 
 	margin: 0; 
 	overflow: hidden;

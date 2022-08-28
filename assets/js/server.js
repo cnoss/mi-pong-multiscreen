@@ -1,12 +1,10 @@
 var connect = {}
 
 connect.id      = (location.search)?location.search.replace('?', ''):(Math.random()*0xFFFFFF<<0).toString(16);
-connect.port 	= 48566;
-//connect.uri 	= 'http://' + location.hostname.replace('http://', '');
-connect.uri		= 'http://perasmus.serpens.uberspace.de'; //'http://localhost';
-connect.host    = 'http://' + location.hostname.replace('http://', '');
-connect.path	= ''; //location.pathname;
-connect.socket	= io.connect(connect.uri+':'+connect.port);
+connect.uri		= 'https://perasmus.serpens.uberspace.de';
+connect.host    = 'https://' + location.hostname.replace('https://', '');
+connect.path	= ''; 
+connect.socket	= io.connect(connect.uri);
 connect.user 	= 'host';
 
 connect.socket.on('member', function(data) { 
