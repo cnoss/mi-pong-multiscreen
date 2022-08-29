@@ -1,8 +1,8 @@
 var connect = {}
 
 connect.id = (location.search) ? location.search.replace('?', '') : (Math.random() * 0xFFFFFF << 0).toString(16);
-connect.uri = 'https://perasmus.serpens.uberspace.de';
-connect.host = 'https://' + location.hostname.replace('https://', '');
+connect.uri = 'https://perasmus.uber.space';
+connect.host = 'https://' + location.href.replace('https://', '').replace('server.html', '');
 connect.path = '';
 
 
@@ -19,9 +19,10 @@ const initSocket = () => {
   connect.socket.emit('connectTo', connect.id, connect.user);
   connect.socket.on('message', function (data) {
     var data = JSON.parse(data);
+    console.log(data);
 
-    if (data.type = 'move') {
-      //if( !game.isPlaying() ) game.start();
+    if (data.type === 'move') {
+      if( !game.isPlaying() ) game.start();
 
       mouse[data.user].x = data.pos.x * canvas.w;
       mouse[data.user].y = data.pos.y * canvas.h;
@@ -736,7 +737,7 @@ function startScreen() {
   qrcoder.create();
   game.init();
   startBtn.draw();
-
+  initSocket();
 }
 
 // On button click (Restart and start)
