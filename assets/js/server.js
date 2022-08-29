@@ -22,7 +22,7 @@ const initSocket = () => {
     console.log(data);
 
     if (data.type === 'move') {
-      if( !game.isPlaying() ) game.start();
+      // if( !game.isPlaying() ) game.start();
 
       mouse[data.user].x = data.pos.x * canvas.w;
       mouse[data.user].y = data.pos.y * canvas.h;
