@@ -3,8 +3,7 @@ var connect = {}
 connect.id = (location.search) ? location.search.replace('?', '') : (Math.random() * 0xFFFFFF << 0).toString(16);
 connect.uri = 'https://perasmus.serpens.uberspace.de';
 connect.host = 'https://' + location.hostname.replace('https://', '');
-connect.path = '';
-
+connect.path = location.pathname.replace('server.html', '');
 
 const initSocket = () => {
 
@@ -122,13 +121,15 @@ var qrcoder = new function () {
     l = 0;
 
     // Fuck, den musste ich noch umcoden, weil der qrcoder jquery vorraussetzte...
-    var url_p1 = connect.host + '?' + connect.id + '__playerOne';
+    var url_p1 = connect.host + connect.path + '?' + connect.id + '__playerOne';
     makeShort(url_p1, "playerOne");
-    var url_p2 = connect.host + '?' + connect.id + '__playerTwo';
+    var url_p2 = connect.host + connect.path + '?' + connect.id + '__playerTwo';
     makeShort(url_p2, "playerTwo");
+
     qrcode(p.playerOne, url_p1);
     qrcode(p.playerTwo, url_p2);
 
+    console.log(url_p1, url_p2);
 
     self.show();
   }
