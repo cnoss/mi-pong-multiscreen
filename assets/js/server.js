@@ -13,13 +13,17 @@ const initSocket = () => {
   connect.socket.on('member', function (data) {
     console.log(data);
     qrcoder.hideOne(data);
+
+    // Direktes Feedback: Schläger "boingt" und folgt ab jetzt dem Controller
+    pad.connect(data);
+    game.lobby();
   });
 
   connect.socket.emit('connectTo', connect.id, connect.user);
   connect.socket.on('message', function (data) {
     var data = JSON.parse(data);
 
-    if (data.type = 'move') {
+    if (data.type === 'move') {
       //if( !game.isPlaying() ) game.start();
 
       mouse[data.user].x = data.pos.x * canvas.w;
@@ -122,9 +126,9 @@ var qrcoder = new function () {
 
     // Fuck, den musste ich noch umcoden, weil der qrcoder jquery vorraussetzte...
     var url_p1 = connect.host + connect.path + '?' + connect.id + '__playerOne';
-    makeShort(url_p1, "playerOne");
+    appendUrl(url_p1, "playerOne");
     var url_p2 = connect.host + connect.path + '?' + connect.id + '__playerTwo';
-    makeShort(url_p2, "playerTwo");
+    appendUrl(url_p2, "playerTwo");
 
     qrcode(p.playerOne, url_p1);
     qrcode(p.playerTwo, url_p2);
@@ -164,41 +168,16 @@ var qrcoder = new function () {
 
 }
 
-/* Short URLs
+/* URL-Anzeige
 =======================================*/
 
-function makeShort(longUrl, player) {
-
-  const appendLink = (link) => {
-    const id = player === 'playerOne' ? 'qrcode_left' : 'qrcode_right';
-    const p = document.createElement('p');
-    p.className = "url";
-    const node = document.createTextNode(link);
-    p.appendChild(node);
-    document.getElementById(id).appendChild(p);
-  }
-
-  const shortenerUrl = 'https://api-ssl.bitly.com/v4/shorten';
-  const urlData = {
-    "domain": "bit.ly",
-    "long_url": longUrl
-  };
-
-  fetch(shortenerUrl, {
-    method: 'post',
-    headers: new Headers({
-      'Authorization': 'Bearer ed18db244e3595d565f824021e025beed6b40a03',
-      'Content-Type': 'application/json',
-    }),
-    body: JSON.stringify(urlData)
-  })
-    .then((response) => {
-      if (response.ok) return response.json();
-      appendLink(urlData.long_url);
-    })
-    .then((data) => {
-      if (data) appendLink(data.link);
-    });
+function appendUrl(url, player) {
+  const id = player === 'playerOne' ? 'qrcode_left' : 'qrcode_right';
+  const p = document.createElement('p');
+  p.className = "url";
+  const node = document.createTextNode(url);
+  p.appendChild(node);
+  document.getElementById(id).appendChild(p);
 
   return true;
 }
@@ -427,12 +406,56 @@ var pad = new function () {
     }
   };
 
+  // Markiert einen Schläger als verbunden und startet die Feedback-Animation
+  self.connect = function (name) {
+    var id = (name === 'playerOne') ? 0 : 1;
+    var p = self.list[id];
+
+    if (!p || p.connected) return;
+
+    p.connected = true;
+    p.anim = true;
+    p.animStart = Date.now();
+    p.animDuration = 1200;
+  };
+
+  // Lobby-Update: verbundene Schläger folgen ihrem Controller bzw. spielen die Animation
+  self.update = function () {
+    for (var i = 0, l = self.list.length; i < l; i++) {
+      var p = self.list[i];
+
+      if (p.anim) {
+        animate(p);
+      } else if (p.connected) {
+        var name = (i === 0) ? 'playerOne' : 'playerTwo';
+        if (mouse[name].y !== undefined) self.move(i, mouse[name].x, mouse[name].y);
+      }
+    }
+  };
+
+  // "Boing": startet unten, schwingt nach oben und pendelt sich mittig ein
+  var animate = function (p) {
+    var settle = canvas.h / 2 - p.h / 2;
+    var t = (Date.now() - p.animStart) / p.animDuration;
+
+    if (t >= 1) {
+      p.anim = false;
+      p.y = settle;
+      return;
+    }
+
+    var y = settle + settle * Math.exp(-3 * t) * Math.cos(t * Math.PI * 4);
+    p.y = Math.max(1, Math.min(canvas.h - p.h, y));
+  };
+
   var create = function (name) {
     return {
       w: 25,
       h: 150,
       name: name,
-      wins: 0
+      wins: 0,
+      connected: false,
+      anim: false
     }
   }
 
@@ -517,6 +540,29 @@ var countdown = new function () {
 var game = new function () {
   var self = this;
   var playing = false;
+  var lobbyRunning = false;
+
+  // Render-Loop vor dem eigentlichen Spielstart, damit verbundene
+  // Schläger schon Feedback geben (Animation + Controller-Steuerung)
+  self.lobby = function () {
+    if (playing || lobbyRunning) return;
+    lobbyRunning = true;
+    lobbyLoop();
+  }
+
+  var lobbyLoop = function () {
+    if (playing) {
+      lobbyRunning = false;
+      return;
+    }
+
+    canvas.draw();
+    scoreTable.draw();
+    pad.draw();
+    pad.update();
+
+    requestAnimFrame(lobbyLoop);
+  }
 
   self.draw = function () {
     // draw cylce
@@ -734,6 +780,7 @@ function gameOver(padWinner, playerIndex) {
 // Function to execute at startup
 function startScreen() {
 
+  initSocket();
   qrcoder.create();
   game.init();
   startBtn.draw();
