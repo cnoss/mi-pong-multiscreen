@@ -1,0 +1,10 @@
+{
+  // Verhalten/Beschriftung für den Dev-Server-Port beim Forwarding.
+  // Die "Public"-Sichtbarkeit muss beim Forwarden einmalig manuell gesetzt werden.
+  "remote.portsAttributes": {
+    "8080": {
+      "label": "Pong Server",
+      "onAutoForward": "notify"
+    }
+  }
+}

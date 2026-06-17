@@ -4,7 +4,7 @@
   "description": "Kleine Demo Pong für Multiuser Experience",
   "main": "index.js",
   "scripts": {
-    "dev": "echo 'Run: http://localhost:8080/server.html\n\n' && npx http-server"
+    "dev": "echo 'Run: http://localhost:8080/server.html\n\n' && npx http-server -p 8080"
   },
   "repository": {
     "type": "git",
