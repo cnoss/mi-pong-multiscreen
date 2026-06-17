@@ -5,7 +5,7 @@ var connect = {}
 connect.id		= (location.search.replace('?', '').split('__'))[0];
 connect.user	= (location.search.replace('?', '').split('__'))[1];//'user' + (Math.random()*0xFFFFFF<<0).toString(16);
 
-connect.uri		= 'https://perasmus.serpens.uberspace.de'; //'http://localhost';
+connect.uri		= 'https://perasmus.uber.space'; //'http://localhost';
 connect.socket	= io.connect(connect.uri);
 connect.socket.on('member', function(data) { 
 	console.log(data); 
@@ -56,18 +56,23 @@ myInfo.textContent = connect.user;
 
 // let the pan gesture support all directions.
 // this will block the vertical scrolling on a touch-device while on the element
-mc.get('pan').set({ direction: Hammer.DIRECTION_ALL });
+// mc.get('pan').set({ direction: Hammer.DIRECTION_ALL });
 
 // listen to events...
-mc.on('panleft panright panup pandown tap press', function(ev) {
+// mc.on(panleft panright panup pandown tap press', function(ev) {
+myArea.addEventListener('touchmove', function(ev) {
 
 	var pos = {
-		x: (ev.center.x - myAreaSize.x) / myAreaSize.w,
-		y: (ev.center.y - myAreaSize.y) / myAreaSize.h
+		// x: (ev.center.x - myAreaSize.x) / myAreaSize.w,
+		x: (ev.touches[0].clientX - myAreaSize.x) / myAreaSize.w,
+		// y: (ev.center.y - myAreaSize.y) / myAreaSize.h
+		y: (ev.touches[0].clientY - myAreaSize.y) / myAreaSize.h
 	}
 	
 	pos.x = Math.min(Math.max(pos.x, 0), 1);
-	pos.x = Math.min(Math.max(pos.y, 0), 1);
+	pos.y = Math.min(Math.max(pos.y, 0), 1);
+
+	console.log('touchmove', pos);
 	
 /*
 	if( pos.x < 0 ) pos.x = 0;
@@ -86,6 +91,7 @@ mc.on('panleft panright panup pandown tap press', function(ev) {
 	});
 	
 	connect.socket.send(msg, connect.user);
+	// connect.socket.emit('message', msg);
 });
 
 window.onresize = function(event) {
