@@ -255,7 +255,7 @@ function applyShakeSensitivity() {
 	kickThreshold = 24 - level * 2;
 }
 
-shakeSensitivity.addEventListener('input', applyShakeSensitivity);
+// shakeSensitivity.addEventListener('input', applyShakeSensitivity);
 applyShakeSensitivity();
 
 function onMotion(ev) {
