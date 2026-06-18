@@ -445,6 +445,9 @@ var ball = new function () {
       m: self.vx / Math.abs(self.vx)
     });
     gamesound.triggerAttackRelease("A5", 0.1);
+
+    // sichtbares Feedback am Schläger: kurzer Puls (dicker + ins Feld)
+    pad.pulse(user);
   };
 
   self.switchX = function () {
@@ -562,8 +565,16 @@ var pad = new function () {
 
       var fillColor = (i === 0) ? color.playerOne : color.playerTwo;
 
+      // Kick-Puls: Schläger wächst kurz ins Feld hinein. Die Außenkante
+      // bleibt fix, nur die zur Mitte zeigende Seite wird breiter -> wirkt
+      // "dicker" und "nach vorne geschoben". Logische p.w/p.x (Kollision)
+      // bleiben unberührt, das ist nur die Darstellung.
+      var pulse = kickPulse(p);
+      var drawW = p.w + p.w * 1.2 * pulse;
+      var drawX = (i === 0) ? p.x : (canvas.w - drawW - leftRightPadding);
+
       ctx.fillStyle = fillColor;
-      ctx.fillRect(p.x, p.y, p.w, p.h);
+      ctx.fillRect(drawX, p.y, drawW, p.h);
     }
   };
 
@@ -592,6 +603,32 @@ var pad = new function () {
     p.anim = true;
     p.animStart = Date.now();
     p.animDuration = 1200;
+  };
+
+  // Startet den Kick-Puls für den Schläger des angegebenen Spielers
+  self.pulse = function (user) {
+    var id = (user === 'playerOne') ? 0 : (user === 'playerTwo') ? 1 : -1;
+    if (id === -1) return;
+
+    var p = self.list[id];
+    if (!p) return;
+
+    p.kick = true;
+    p.kickStart = Date.now();
+    p.kickDuration = 300;
+  };
+
+  // Liefert den aktuellen Puls-Wert 0..1 (Pop: rauf und wieder runter)
+  var kickPulse = function (p) {
+    if (!p.kick) return 0;
+
+    var t = (Date.now() - p.kickStart) / p.kickDuration;
+    if (t >= 1) {
+      p.kick = false;
+      return 0;
+    }
+
+    return Math.sin(Math.PI * t);
   };
 
   // Lobby-Update: verbundene Schläger folgen ihrem Controller bzw. spielen die Animation
