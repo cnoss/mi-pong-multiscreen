@@ -52,6 +52,11 @@ const initSocket = () => {
       mouse[data.user].y = data.pos.y * canvas.h;
     }
 
+    // Shake-Boost: Handybewegung gibt dem Ball einen Schub
+    if (data.type === 'kick') {
+      ball.kick(data.user);
+    }
+
     // Start / Fortsetzen: erster Controller, der drückt, gibt den Ball frei.
     // Spielstand bleibt erhalten (0:0 = Start, sonst = nächste Runde).
     if (data.type === 'start') {
@@ -404,6 +409,42 @@ var ball = new function () {
       self.vx += (self.vx < 0) ? -0.5 : 0.5;
       self.vy += (self.vy < 0) ? -0.5 : 0.5;
     }
+  };
+
+  // Shake-Boost: gibt dem Ball Schub, aber nur wenn er vom Schläger dieses
+  // Spielers wegfliegt (man kann also nur den eigenen Schlag "pushen").
+  // Gedeckelt und mit kurzem Cooldown gegen Dauer-Schütteln.
+  var lastKick = 0;
+  var KICK_COOLDOWN = 200;   // ms
+  var KICK_BOOST = 1.12;     // pro Kick
+  var KICK_MAX_VX = 25;      // Obergrenze für die Ballgeschwindigkeit
+
+  self.kick = function (user) {
+    if (!game.isPlaying()) return;
+
+    // playerOne ist links (Ball fliegt weg bei vx > 0),
+    // playerTwo ist rechts (Ball fliegt weg bei vx < 0)
+    var movingAway =
+      (user === 'playerOne' && self.vx > 0) ||
+      (user === 'playerTwo' && self.vx < 0);
+    if (!movingAway) return;
+
+    var now = Date.now();
+    if (now - lastKick < KICK_COOLDOWN) return;
+    lastKick = now;
+
+    if (Math.abs(self.vx) < KICK_MAX_VX) {
+      self.vx *= KICK_BOOST;
+      self.vy *= KICK_BOOST;
+    }
+
+    // optisches/akustisches Feedback am aktuellen Ballort
+    particle.create({
+      x: self.x,
+      y: self.y,
+      m: self.vx / Math.abs(self.vx)
+    });
+    gamesound.triggerAttackRelease("A5", 0.1);
   };
 
   self.switchX = function () {
