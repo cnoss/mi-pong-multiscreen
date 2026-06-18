@@ -28,6 +28,69 @@ body.client {
 	background: #EADCB7;
 }
 
+#buttons{
+	position: absolute;
+	top: 50%;
+	left: 50%;
+	transform: translate(-50%, -50%);
+	display: flex;
+	flex-direction: column;
+	align-items: center;
+	gap: 24px;
+	z-index: 2;
+}
+
+#buttons button{
+	font-family: "Amatic SC";
+	font-weight: 700;
+	color: #fff;
+	background: transparent;
+	border: 4px solid #fff;
+	border-radius: 0;
+	cursor: pointer;
+	white-space: nowrap;
+}
+
+#startBtn{
+	padding: 40px 80px;
+	font-size: 72px;
+}
+
+#newGameBtn{
+	display: none;
+	padding: 16px 40px;
+	font-size: 36px;
+}
+
+#buttons button:active{
+	transform: scale(0.96);
+}
+
+#controls{
+	position: absolute;
+	top: 15px;
+	right: 0;
+	z-index: 3;
+	display: flex;
+	align-items: center;
+	gap: 12px;
+	padding: 8px 10px;
+	background: rgba(0, 0, 0, 0.35);
+	border-radius: 8px;
+	font-family: "Amatic SC";
+	font-size: 30px;
+	font-weight: 700;
+	color: #fff;
+}
+
+#sensitivity{
+	width: 70px;
+	padding: 4px 6px;
+	font-family: "Amatic SC";
+	font-size: 26px;
+	text-align: center;
+}
+
 #info{
 	height: 100px;
 	width: 140px;

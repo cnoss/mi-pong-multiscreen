@@ -17,7 +17,31 @@ connect.socket.on('message', function(data) {
 	if (data.type === 'notify' && data.user === connect.user) {
 		gamesound.triggerAttackRelease( "G5", 0.1);
 	}
+	if (data.type === 'state') {
+		renderButtons(data);
+	}
 });
+
+// Zeigt die passenden Knöpfe abhängig vom Spielzustand:
+// - läuft das Spiel: keine Knöpfe
+// - 0:0 und pausiert: "Spiel starten"
+// - Punkt gemacht (Stand != 0:0) und pausiert: "Spiel fortsetzen" + "Neues Spiel starten"
+function renderButtons(state) {
+	var startBtn   = document.getElementById('startBtn');
+	var newGameBtn = document.getElementById('newGameBtn');
+
+	if (state.playing) {
+		startBtn.style.display   = 'none';
+		newGameBtn.style.display = 'none';
+		return;
+	}
+
+	var fresh = (state.scoreOne === 0 && state.scoreTwo === 0);
+
+	startBtn.textContent     = fresh ? 'Spiel starten' : 'Spiel fortsetzen';
+	startBtn.style.display   = 'block';
+	newGameBtn.style.display = fresh ? 'none' : 'block';
+}
 
 connect.socket.emit('connectTo', connect.id, connect.user);
 
@@ -52,7 +76,43 @@ var myAreaSize = {
 myAreaSize.calc();
 
 
-myInfo.textContent = connect.user;
+
+// current normalized paddle position (0..1), kept in sync between touch and wheel input
+var currentPos = { x: 0.5, y: 0.5 };
+
+// how far one full wheel notch moves the paddle (fraction of the area, 0..1)
+// set via the sensitivity control below (level 1..10 -> 0.01..0.10)
+var wheelStep = 0.05;
+
+// sensitivity / inertia control: 10 = sehr sensibel/schnell, 1 = träge (viel scrollen)
+var sensitivity = document.getElementById('sensitivity');
+
+function applySensitivity() {
+	var level = parseInt(sensitivity.value, 10);
+	if (isNaN(level)) level = 5;
+	level = Math.min(10, Math.max(1, level));
+	wheelStep = level * 0.01;
+}
+
+sensitivity.addEventListener('input', applySensitivity);
+applySensitivity();
+
+function sendPos(pos) {
+	pos.x = Math.min(Math.max(pos.x, 0), 1);
+	pos.y = Math.min(Math.max(pos.y, 0), 1);
+
+	currentPos.x = pos.x;
+	currentPos.y = pos.y;
+
+	var msg = JSON.stringify({
+		type: 'move',
+		user: connect.user,
+		pos:  pos
+	});
+
+	connect.socket.send(msg, connect.user);
+	// connect.socket.emit('message', msg);
+}
 
 // let the pan gesture support all directions.
 // this will block the vertical scrolling on a touch-device while on the element
@@ -68,30 +128,48 @@ myArea.addEventListener('touchmove', function(ev) {
 		// y: (ev.center.y - myAreaSize.y) / myAreaSize.h
 		y: (ev.touches[0].clientY - myAreaSize.y) / myAreaSize.h
 	}
-	
-	pos.x = Math.min(Math.max(pos.x, 0), 1);
-	pos.y = Math.min(Math.max(pos.y, 0), 1);
 
-	console.log('touchmove', pos);
-	
-/*
-	if( pos.x < 0 ) pos.x = 0;
-	if( pos.x > 1 ) pos.x = 1;
-	
-	if( pos.y < 0 ) pos.y = 0;
-	if( pos.y > 1 ) pos.y = 1;
-*/
-	
-	//myInfo.textContent = ev.type ;//+'\n('+pos.x+','+pos.y+')';
-	
+	sendPos(pos);
+});
+
+// mouse wheel control: scroll up/down moves the paddle up/down
+myArea.addEventListener('wheel', function(ev) {
+	ev.preventDefault();
+
+	// direction only, so the step is consistent across devices/deltaModes
+	var direction = ev.deltaY > 0 ? 1 : (ev.deltaY < 0 ? -1 : 0);
+
+	currentPos.y += direction * wheelStep;
+
+	sendPos({ x: currentPos.x, y: currentPos.y });
+}, { passive: false });
+
+// buttons: first controller to press starts / continues / restarts the game.
+// after a press we hide both optimistically; the server's state broadcast
+// re-renders them if needed.
+var startBtn   = document.getElementById('startBtn');
+var newGameBtn = document.getElementById('newGameBtn');
+
+function sendAndHide(type) {
 	var msg = JSON.stringify({
-		type: 'move',
-		user: connect.user,
-		pos:  pos
+		type: type,
+		user: connect.user
 	});
-	
+
 	connect.socket.send(msg, connect.user);
-	// connect.socket.emit('message', msg);
+
+	startBtn.style.display   = 'none';
+	newGameBtn.style.display = 'none';
+}
+
+// "Spiel starten" / "Spiel fortsetzen": Ball freigeben, Spielstand bleibt
+startBtn.addEventListener('click', function() {
+	sendAndHide('start');
+});
+
+// "Neues Spiel starten": Spielstand auf 0:0 zurücksetzen und neu beginnen
+newGameBtn.addEventListener('click', function() {
+	sendAndHide('newgame');
 });
 
 window.onresize = function(event) {

@@ -2,7 +2,7 @@ var connect = {}
 
 connect.id = (location.search) ? location.search.replace('?', '') : (Math.random() * 0xFFFFFF << 0).toString(16);
 connect.uri = 'https://perasmus.uber.space';
-connect.host = 'https://' + location.href.replace('https://', '').replace('server.html', '');
+connect.host = location.href.replace(/server\.html.*$/, '');
 connect.path = '';
 
 
@@ -18,21 +18,52 @@ const initSocket = () => {
     // Direktes Feedback: Schläger "boingt" und folgt ab jetzt dem Controller
     pad.connect(data);
     game.lobby();
+
+    // neu verbundenem Controller den aktuellen Spielzustand mitteilen,
+    // damit er den passenden Knopf anzeigt
+    broadcastState();
   });
 
   connect.socket.emit('connectTo', connect.id, connect.user);
   connect.socket.on('message', function (data) {
     var data = JSON.parse(data);
-    console.log(data);
 
     if (data.type === 'move') {
-      //if( !game.isPlaying() ) game.start();
-
       mouse[data.user].x = data.pos.x * canvas.w;
       mouse[data.user].y = data.pos.y * canvas.h;
     }
 
+    // Start / Fortsetzen: erster Controller, der drückt, gibt den Ball frei.
+    // Spielstand bleibt erhalten (0:0 = Start, sonst = nächste Runde).
+    if (data.type === 'start') {
+      if (!game.isPlaying()) game.start();
+    }
+
+    // Neues Spiel: Spielstand auf 0:0 zurücksetzen und ersten Ball freigeben
+    if (data.type === 'newgame') {
+      if (!game.isPlaying()) {
+        pad.list[0].wins = 0;
+        pad.list[1].wins = 0;
+        game.start();
+      }
+    }
+
   });
+}
+
+// Sendet den aktuellen Spielzustand an alle Controller, damit diese den
+// richtigen Knopf ("Spiel starten" / "Spiel fortsetzen" / "Neues Spiel") zeigen
+function broadcastState() {
+  if (!connect.socket) return;
+
+  var msg = JSON.stringify({
+    type: 'state',
+    playing: game.isPlaying(),
+    scoreOne: pad.list[0].wins,
+    scoreTwo: pad.list[1].wins
+  });
+
+  connect.socket.send(msg, connect.user);
 }
 
 
@@ -161,7 +192,8 @@ var qrcoder = new function () {
   }
 
   self.check = function () {
-    if (l === 2) game.start();
+    // Spielstart erfolgt jetzt per Start-Knopf auf dem Controller,
+    // nicht mehr automatisch, sobald beide verbunden sind.
   }
 
 
@@ -177,8 +209,13 @@ function appendUrl(url, player) {
   const id = player === 'playerOne' ? 'qrcode_left' : 'qrcode_right';
   const p = document.createElement('p');
   p.className = "url";
-  const node = document.createTextNode(url);
-  p.appendChild(node);
+  const link = document.createElement('a');
+  link.href = url;
+  link.target = '_blank';
+  link.rel = 'noopener';
+  link.textContent = url;
+  link.style.color = color[player];
+  p.appendChild(link);
   document.getElementById(id).appendChild(p);
 
   return true;
@@ -321,9 +358,9 @@ var ball = new function () {
         pad.list[0].wins = 0;
         pad.list[1].wins = 0;
       }
-      else {
-        countdown.start();
-      }
+
+      // kein Countdown mehr – Controller zeigen jetzt den Fortsetzen-Knopf
+      broadcastState();
 
       gamesound.triggerAttackRelease("C4", "8n");
       gamesound.triggerAttackRelease("E4", "8n", "+0.2");
@@ -410,7 +447,11 @@ var pad = new function () {
 
   // Markiert einen Schläger als verbunden und startet die Feedback-Animation
   self.connect = function (name) {
-    var id = (name === 'playerOne') ? 0 : 1;
+    // nur die beiden echten Spieler verbinden – alles andere (z.B. 'host')
+    // ignorieren, sonst würde der grüne Schläger fälschlich als belegt gelten
+    var id = (name === 'playerOne') ? 0 : (name === 'playerTwo') ? 1 : -1;
+    if (id === -1) return;
+
     var p = self.list[id];
 
     if (!p || p.connected) return;
@@ -490,49 +531,29 @@ var scoreTable = new function () {
 };
 
 
-/* The countdown
+/* The Computer Player (Autoplay)
 =======================================*/
-var countdown = new function () {
+// Steuert den grünen Schläger (playerTwo, rechts), wenn kein Controller
+// dafür verbunden ist. Bewegt sich mit gedeckelter Geschwindigkeit zum Ball
+// und nur, wenn der Ball auf ihn zufliegt – sonst wäre er unschlagbar.
+var ai = new function () {
   var self = this;
-  var ctx = canvas.ctx;
+  var maxSpeed = 7; // Pixel pro Frame – kleiner = leichter zu schlagen
 
-  self.start = function () {
-    var countdown = 4;
+  self.update = function () {
+    var p = pad.list[1];
+    if (!p) return;
 
-    self.draw(countdown--);
+    var paddleCenter = p.y + p.h / 2;
 
-    var intervalHandler = window.setInterval(function () {
-      canvas.draw(false);
-      scoreTable.draw();
-      pad.draw();
-      ball.draw();
+    // Ball fliegt nach rechts (vx > 0) → verfolgen, sonst zur Mitte zurück
+    var target = (ball.vx > 0) ? ball.y : canvas.h / 2;
 
-      self.draw(countdown);
+    var diff = target - paddleCenter;
+    var step = Math.max(-maxSpeed, Math.min(maxSpeed, diff));
 
-      if (countdown === 0) {
-        window.clearInterval(intervalHandler);
-
-        window.setTimeout(function () {
-          game.nextRound();
-        }, 750);
-      }
-
-      countdown--;
-    }, 1000);
-  }
-
-  self.draw = function (currCountdown) {
-
-    if (currCountdown === 0)
-      currCountdown = "GO!";
-
-    ctx.clearRect(canvas.w / 2 - 50, canvas.h / 2 - 130, 100, 230);
-
-    ctx.font = "120px FFFForward, sans-serif";
-    ctx.textAlign = "center";
-    ctx.textBaseline = "middle";
-    ctx.fillStyle = "#ffffff";
-    ctx.fillText(currCountdown, canvas.w / 2 + 12, canvas.h / 2 + 25);
+    // mouse.playerTwo.y ist die Soll-Mitte, die der Loop ohnehin nutzt
+    mouse.playerTwo.y = Math.max(0, Math.min(canvas.h, paddleCenter + step));
   }
 };
 
@@ -576,6 +597,8 @@ var game = new function () {
 
     // update cycle
     pad.move(0, mouse.playerOne.x, mouse.playerOne.y);
+    // Grün vom Computer steuern lassen, solange kein Controller verbunden ist
+    if (!pad.list[1].connected) ai.update();
     pad.move(1, mouse.playerTwo.x, mouse.playerTwo.y);
     ball.move();
 
@@ -605,7 +628,11 @@ var game = new function () {
   self.start = function () {
     self.init();
     playing = true;
+    // QR-Codes und Links ausblenden, sobald gespielt wird – auch im
+    // Autoplay-Modus, wo der zweite Controller nie verbunden wurde.
+    qrcoder.hideAll();
     self.loop();
+    broadcastState();
   }
 
   self.nextRound = function () {
