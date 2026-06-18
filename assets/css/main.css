@@ -52,8 +52,8 @@ body.client {
 }
 
 #startBtn{
-	padding: 40px 80px;
-	font-size: 72px;
+	padding: 1rem 2rem;
+	font-size: clamp( 24px, calc(32px + 2vw), 48px );
 }
 
 #newGameBtn{

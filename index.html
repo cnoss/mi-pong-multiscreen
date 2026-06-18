@@ -13,7 +13,18 @@
 		<div id="area"><div id="info"></div><div id="buttons"><button id="startBtn">Spiel starten</button><button id="newGameBtn">Neues Spiel starten</button></div></div>
 		<div id="controls">
 			<label for="sensitivity">Sensibilität</label>
-			<input type="number" id="sensitivity" min="1" max="10" step="1" value="5">
+			<select id="sensitivity">
+				<option value="1">1</option>
+				<option value="2">2</option>
+				<option value="3">3</option>
+				<option value="4">4</option>
+				<option value="5" selected>5</option>
+				<option value="6">6</option>
+				<option value="7">7</option>
+				<option value="8">8</option>
+				<option value="9">9</option>
+				<option value="10">10</option>
+			</select>
 		</div>
 		<script src="https://cdnjs.cloudflare.com/ajax/libs/hammer.js/2.0.8/hammer.min.js"></script>
 		<script src="https://cdnjs.cloudflare.com/ajax/libs/tone/0.12.10/Tone.min.js"></script>
