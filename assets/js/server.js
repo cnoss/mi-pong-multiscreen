@@ -139,6 +139,10 @@ var wallsound = new Tone.Synth({
 }).toMaster();
 wallsound.volume.value = -16; // dB, deutlich leiser als gamesound
 
+// Trefferton je Spieler – playerOne höher, playerTwo tiefer (passend zum
+// Controller-Feedback in main.js)
+var hitTone = { playerOne: 'C5', playerTwo: 'G4' };
+
 
 // Margin around the game area
 var margin = { top: 0, left: 0, bottom: 180, right: 0 };
@@ -490,7 +494,7 @@ var ball = new function () {
           user: user
         });
         connect.socket.send(msg, connect.user);
-        gamesound.triggerAttackRelease("G5", 0.1);
+        gamesound.triggerAttackRelease(hitTone[user], 0.1);
 
         particle.create({
           x: self.x - self.vx / Math.abs(self.vx) * self.r,
