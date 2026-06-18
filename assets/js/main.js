@@ -230,6 +230,95 @@ myArea.addEventListener('wheel', function(ev) {
 	sendPos({ x: currentPos.x, y: currentPos.y });
 }, { passive: false });
 
+/* Device-Motion: "Shake-Boost"
+=======================================
+   Eine ruckartige Bewegung des Handys gibt dem Ball einen Schub. Wir messen
+   die Änderung der Beschleunigung zwischen zwei Messungen (Delta), damit die
+   Erkennung unabhängig von der Schwerkraft und vom Gerät funktioniert. */
+
+// Schwelle für die Bewegungsstärke (Delta in m/s^2). Höher = es muss kräftiger
+// geschüttelt werden. Cooldown verhindert, dass eine Bewegung mehrfach zählt.
+// Die Schwelle wird über den Shake-Regler (Stufe 1..10, 5 = neutral) gesetzt:
+// Stufe 10 = sehr empfindlich (kleine Schwelle), Stufe 1 = nur kräftiges Schütteln.
+var kickThreshold   = 14;
+var KICK_COOLDOWN   = 400; // ms
+var lastKickTime    = 0;
+var lastAcc         = null;
+
+var shakeSensitivity = 10; // document.getElementById('shakeSensitivity');
+
+function applyShakeSensitivity() {
+	var level = parseInt(shakeSensitivity.value, 10);
+	if (isNaN(level)) level = 5;
+	level = Math.min(10, Math.max(1, level));
+	// Stufe 5 -> 14 (bisheriger Wert), Stufe 1 -> 22, Stufe 10 -> 4
+	kickThreshold = 24 - level * 2;
+}
+
+shakeSensitivity.addEventListener('input', applyShakeSensitivity);
+applyShakeSensitivity();
+
+function onMotion(ev) {
+	if (connect.locked || !connect.accepted) return;
+
+	var a = ev.accelerationIncludingGravity || ev.acceleration;
+	if (!a) return;
+
+	var ax = a.x || 0, ay = a.y || 0, az = a.z || 0;
+
+	if (lastAcc) {
+		var dx = ax - lastAcc.x;
+		var dy = ay - lastAcc.y;
+		var dz = az - lastAcc.z;
+		var delta = Math.sqrt(dx * dx + dy * dy + dz * dz);
+
+		if (delta > kickThreshold) {
+			var now = Date.now();
+			if (now - lastKickTime >= KICK_COOLDOWN) {
+				lastKickTime = now;
+				sendKick(delta);
+			}
+		}
+	}
+
+	lastAcc = { x: ax, y: ay, z: az };
+}
+
+function sendKick(power) {
+	if (connect.locked) return;
+
+	var msg = JSON.stringify({
+		type: 'kick',
+		user: connect.user,
+		clientId: connect.clientId,
+		power: power
+	});
+
+	connect.socket.send(msg, connect.user);
+
+	// lokales haptisches Feedback, sofern das Gerät es unterstützt
+	if (navigator.vibrate) navigator.vibrate(30);
+}
+
+// iOS 13+ verlangt eine ausdrückliche Erlaubnis, die nur aus einer Nutzergeste
+// heraus angefordert werden darf. Daher beim ersten Antippen aktivieren.
+function enableMotion() {
+	if (typeof DeviceMotionEvent !== 'undefined' &&
+		typeof DeviceMotionEvent.requestPermission === 'function') {
+		DeviceMotionEvent.requestPermission()
+			.then(function (state) {
+				if (state === 'granted') window.addEventListener('devicemotion', onMotion);
+			})
+			.catch(function () {});
+	} else if (typeof DeviceMotionEvent !== 'undefined') {
+		window.addEventListener('devicemotion', onMotion);
+	}
+}
+
+// einmalig bei der ersten Berührung/Klick die Sensorerlaubnis einholen
+window.addEventListener('touchend', enableMotion, { once: true });
+window.addEventListener('click', enableMotion, { once: true });
+
 // buttons: first controller to press starts / continues / restarts the game.
 // after a press we hide both optimistically; the server's state broadcast
 // re-renders them if needed.
