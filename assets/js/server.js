@@ -131,6 +131,14 @@ gamesound.triggerAttackRelease("C3", "8n");
 gamesound.triggerAttackRelease("E3", "8n", "+0.2");
 gamesound.triggerAttackRelease("G3", "8n", "+0.4");
 
+// Eigener, leiserer Synth mit sehr kurzer Hüllkurve nur für die Bande –
+// gibt einen knappen "Tick" statt eines vollen Tons.
+var wallsound = new Tone.Synth({
+  oscillator: { type: 'sine' },
+  envelope: { attack: 0.001, decay: 0.03, sustain: 0, release: 0.03 }
+}).toMaster();
+wallsound.volume.value = -16; // dB, deutlich leiser als gamesound
+
 
 // Margin around the game area
 var margin = { top: 0, left: 0, bottom: 180, right: 0 };
@@ -422,8 +430,8 @@ var ball = new function () {
     if (self.y < self.r || self.y > (canvas.h - self.r)) {
       self.switchY();
       self.y = (self.y < self.r) ? self.r : (canvas.h - self.r);
-      // Bande: ganz kurzer, leiserer Tick (Dauer 0.02s, Velocity 0.3)
-      gamesound.triggerAttackRelease("G3", 0.02, undefined, 0.3);
+      // Bande: ganz kurzer, leiserer Tick über den dedizierten wallsound
+      wallsound.triggerAttackRelease("G3", 0.02);
       return true;
     }
   }
