@@ -51,15 +51,14 @@ body.client {
 	white-space: nowrap;
 }
 
-#startBtn{
+#startBtn, #newGameBtn{
 	padding: 1rem 2rem;
 	font-size: clamp( 24px, calc(32px + 2vw), 48px );
 }
 
 #newGameBtn{
 	display: none;
-	padding: 16px 40px;
-	font-size: 36px;
+	opacity: 0.8;
 }
 
 #buttons button:active{
