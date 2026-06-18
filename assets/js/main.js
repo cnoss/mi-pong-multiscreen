@@ -245,7 +245,7 @@ var KICK_COOLDOWN   = 400; // ms
 var lastKickTime    = 0;
 var lastAcc         = null;
 
-var shakeSensitivity = 10; // document.getElementById('shakeSensitivity');
+var shakeSensitivity = sensitivity + 1;
 
 function applyShakeSensitivity() {
 	var level = parseInt(shakeSensitivity.value, 10);
@@ -254,8 +254,6 @@ function applyShakeSensitivity() {
 	// Stufe 5 -> 14 (bisheriger Wert), Stufe 1 -> 22, Stufe 10 -> 4
 	kickThreshold = 24 - level * 2;
 }
-
-// shakeSensitivity.addEventListener('input', applyShakeSensitivity);
 applyShakeSensitivity();
 
 function onMotion(ev) {
