@@ -938,10 +938,24 @@ function newSession() {
 window.addEventListener("load", function () {
   startScreen();
   speedControl.init();
+  unlockAudio();
 
   var newSessionBtn = document.getElementById('newSessionBtn');
   if (newSessionBtn) newSessionBtn.addEventListener('click', newSession);
 });
+
+// Browser sperren Audio bis zur ersten Nutzergeste. Auf der Server-/Großbild-
+// Seite den Tone.js-AudioContext daher per Klick/Tap/Taste entsperren und den
+// Willkommens-Sound danach nachholen (er ging beim Laden noch ins Leere).
+function unlockAudio() {
+  if (typeof StartAudioContext !== 'function') return;
+
+  StartAudioContext(Tone.context, document.body).then(function () {
+    gamesound.triggerAttackRelease("C3", "8n");
+    gamesound.triggerAttackRelease("E3", "8n", "+0.2");
+    gamesound.triggerAttackRelease("G3", "8n", "+0.4");
+  });
+}
 
 // Taste "N" startet ebenfalls eine neue Session – nicht, während in einem
 // Eingabefeld (z.B. dem Geschwindigkeits-Stepper) getippt wird
