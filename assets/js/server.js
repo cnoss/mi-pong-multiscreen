@@ -422,7 +422,8 @@ var ball = new function () {
     if (self.y < self.r || self.y > (canvas.h - self.r)) {
       self.switchY();
       self.y = (self.y < self.r) ? self.r : (canvas.h - self.r);
-      gamesound.triggerAttackRelease("G3", 0.1);
+      // Bande: ganz kurzer, leiserer Tick (Dauer 0.02s, Velocity 0.3)
+      gamesound.triggerAttackRelease("G3", 0.02, undefined, 0.3);
       return true;
     }
   }

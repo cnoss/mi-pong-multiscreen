@@ -1,5 +1,8 @@
 var color = { 'playerOne': '#dd1166', 'playerTwo': '#00AD2F' };
 var tone = { 'playerOne': 'C4', 'playerTwo': 'G4' };
+// Trefferton je Spieler – unterschiedliche Tonhöhen, damit man hört, welcher
+// Schläger den Ball getroffen hat
+var hitTone = { 'playerOne': 'C5', 'playerTwo': 'G4' };
 var connect = {}
 
 connect.id		= (location.search.replace('?', '').split('__'))[0];
@@ -34,7 +37,7 @@ connect.socket.on('member', function(data) {
 connect.socket.on('message', function(data) {
 	var data = JSON.parse(data);
 	if (data.type === 'notify' && data.user === connect.user) {
-		gamesound.triggerAttackRelease( "G5", 0.1);
+		gamesound.triggerAttackRelease(hitTone[connect.user], 0.1);
 	}
 	if (data.type === 'state') {
 		renderButtons(data);
