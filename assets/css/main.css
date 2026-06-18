@@ -163,3 +163,50 @@ img#viel_drin {
 #qrcode_right.hidden {
 	opacity: 0;
 }
+
+/* "Neue Session"-Button: mittig unten auf dem Server-Screen */
+#newSessionBtn {
+	z-index: 1000;
+
+	padding: 12px 24px;
+	font: 18px "FFFForward", sans-serif;
+	color: #ffffff;
+	background: rgba(255, 255, 255, 0.12);
+	border: 2px solid #ffffff;
+	border-radius: 6px;
+	cursor: pointer;
+
+	-webkit-transition: all .2s;
+	        transition: all .2s;
+}
+
+#newSessionBtn:hover {
+	background: rgba(255, 255, 255, 0.25);
+}
+
+/* Geschwindigkeits-Stepper auf dem Server-Screen */
+#speedControl {
+
+	z-index: 1000;
+
+	display: inline-flex;
+	align-items: center;
+	gap: 8px;
+
+	padding: 8px 14px;
+	font: 16px "FFFForward", sans-serif;
+	color: #ffffff;
+	background: rgba(255, 255, 255, 0.12);
+	border: 2px solid #ffffff;
+	border-radius: 6px;
+}
+
+#speedControl input {
+	width: 56px;
+	padding: 4px 6px;
+	font: 16px "FFFForward", sans-serif;
+	text-align: center;
+	color: #ffffff;
+	background: rgba(255, 255, 255, 0.12);
+	border: transparent;
+}

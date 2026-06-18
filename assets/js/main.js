@@ -5,11 +5,30 @@ var connect = {}
 connect.id		= (location.search.replace('?', '').split('__'))[0];
 connect.user	= (location.search.replace('?', '').split('__'))[1];//'user' + (Math.random()*0xFFFFFF<<0).toString(16);
 
+// Eindeutige Geräte-ID. Persistiert pro Spiel-/Slot-Kombination, damit ein
+// Reload derselben Controller-Seite als derselbe Besitzer erkannt wird,
+// ein anderes Gerät am selben QR-Code/Link aber eine andere ID hat.
+connect.clientId = (function () {
+	var key = 'pong_clientId_' + connect.id + '_' + connect.user;
+	var stored;
+	try { stored = localStorage.getItem(key); } catch (e) { stored = null; }
+	if (!stored) {
+		stored = (Math.random() * 0xFFFFFF << 0).toString(16) + '-' + Date.now().toString(16);
+		try { localStorage.setItem(key, stored); } catch (e) {}
+	}
+	return stored;
+})();
+
+// true, sobald der Host diesen Controller als Besitzer bestätigt hat
+connect.accepted = false;
+// true, wenn der Slot bereits von einem anderen Gerät belegt ist
+connect.locked   = false;
+
 connect.uri		= 'https://perasmus.uber.space'; //'http://localhost';
 connect.socket	= io.connect(connect.uri);
-connect.socket.on('member', function(data) { 
-	console.log(data); 
-	
+connect.socket.on('member', function(data) {
+	console.log(data);
+
 });
 
 connect.socket.on('message', function(data) {
@@ -20,7 +39,67 @@ connect.socket.on('message', function(data) {
 	if (data.type === 'state') {
 		renderButtons(data);
 	}
+
+	// Host hat diesen Controller als Besitzer des Slots bestätigt
+	if (data.type === 'accepted' && data.user === connect.user && data.clientId === connect.clientId) {
+		connect.accepted = true;
+	}
+
+	// Slot bereits durch ein anderes Gerät belegt – Controller sperren
+	if (data.type === 'rejected' && data.user === connect.user && data.clientId === connect.clientId) {
+		lockController();
+	}
 });
+
+// Anmeldung beim Host: solange wiederholen, bis wir akzeptiert oder
+// abgelehnt wurden (der Host ist evtl. noch nicht bereit, wenn wir starten).
+function sendJoin() {
+	var msg = JSON.stringify({
+		type: 'join',
+		user: connect.user,
+		clientId: connect.clientId
+	});
+	connect.socket.send(msg, connect.user);
+}
+
+var joinInterval = setInterval(function () {
+	if (connect.accepted || connect.locked) {
+		clearInterval(joinInterval);
+		return;
+	}
+	sendJoin();
+}, 1000);
+sendJoin();
+
+// Sperrt die Steuerung und zeigt einen Hinweis, dass der Controller belegt ist
+function lockController() {
+	if (connect.locked) return;
+	connect.locked = true;
+	connect.accepted = false;
+
+	var overlay = document.getElementById('occupied');
+	if (!overlay) {
+		overlay = document.createElement('div');
+		overlay.id = 'occupied';
+		overlay.style.position = 'fixed';
+		overlay.style.top = '0';
+		overlay.style.left = '0';
+		overlay.style.width = '100%';
+		overlay.style.height = '100%';
+		overlay.style.display = 'flex';
+		overlay.style.alignItems = 'center';
+		overlay.style.justifyContent = 'center';
+		overlay.style.textAlign = 'center';
+		overlay.style.padding = '2rem';
+		overlay.style.boxSizing = 'border-box';
+		overlay.style.background = 'rgba(0,0,0,0.85)';
+		overlay.style.color = '#ffffff';
+		overlay.style.font = '24px sans-serif';
+		overlay.style.zIndex = '9999';
+		overlay.textContent = 'Dieser Controller ist bereits belegt.';
+		document.body.appendChild(overlay);
+	}
+}
 
 // Zeigt die passenden Knöpfe abhängig vom Spielzustand:
 // - läuft das Spiel: keine Knöpfe
@@ -98,6 +177,9 @@ sensitivity.addEventListener('input', applySensitivity);
 applySensitivity();
 
 function sendPos(pos) {
+	// belegte Controller dürfen den Schläger nicht steuern
+	if (connect.locked) return;
+
 	pos.x = Math.min(Math.max(pos.x, 0), 1);
 	pos.y = Math.min(Math.max(pos.y, 0), 1);
 
@@ -107,6 +189,7 @@ function sendPos(pos) {
 	var msg = JSON.stringify({
 		type: 'move',
 		user: connect.user,
+		clientId: connect.clientId,
 		pos:  pos
 	});
 
@@ -151,9 +234,13 @@ var startBtn   = document.getElementById('startBtn');
 var newGameBtn = document.getElementById('newGameBtn');
 
 function sendAndHide(type) {
+	// belegte Controller dürfen das Spiel nicht starten/fortsetzen
+	if (connect.locked) return;
+
 	var msg = JSON.stringify({
 		type: type,
-		user: connect.user
+		user: connect.user,
+		clientId: connect.clientId
 	});
 
 	connect.socket.send(msg, connect.user);

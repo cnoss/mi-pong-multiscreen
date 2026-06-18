@@ -6,27 +6,46 @@ connect.host = location.href.replace(/server\.html.*$/, '');
 connect.path = '';
 
 
+// Besitzer der beiden Controller-Slots. Der erste, der sich eincheckt,
+// bekommt den Slot; weitere Geräte am selben QR-Code/Link werden abgewiesen.
+var owners = { playerOne: null, playerTwo: null };
+
+function isPlayer(user) {
+  return user === 'playerOne' || user === 'playerTwo';
+}
+
+function isOwner(user, clientId) {
+  return isPlayer(user) && owners[user] !== null && owners[user] === clientId;
+}
+
 const initSocket = () => {
 
   connect.socket = io.connect(connect.uri);
   connect.user = 'host';
 
+  // Hinweis: Die Slot-Vergabe läuft jetzt über die 'join'-Nachricht (mit
+  // eindeutiger clientId), nicht mehr über das anonyme 'member'-Event –
+  // nur so lässt sich der erste Besitzer von späteren Geräten unterscheiden.
   connect.socket.on('member', function (data) {
-    console.log(data);
-    qrcoder.hideOne(data);
-
-    // Direktes Feedback: Schläger "boingt" und folgt ab jetzt dem Controller
-    pad.connect(data);
-    game.lobby();
-
-    // neu verbundenem Controller den aktuellen Spielzustand mitteilen,
-    // damit er den passenden Knopf anzeigt
-    broadcastState();
+    console.log('member', data);
   });
 
   connect.socket.emit('connectTo', connect.id, connect.user);
   connect.socket.on('message', function (data) {
     var data = JSON.parse(data);
+
+    // Anmeldung eines Controllers: Slot vergeben oder ablehnen
+    if (data.type === 'join') {
+      handleJoin(data);
+      return;
+    }
+
+    // Alle übrigen Controller-Befehle nur vom bestätigten Besitzer annehmen.
+    // So kann ein zweites Gerät, das denselben QR-Code gescannt hat, den
+    // Schläger weder bewegen noch das Spiel starten.
+    if (isPlayer(data.user) && !isOwner(data.user, data.clientId)) {
+      return;
+    }
 
     if (data.type === 'move') {
       mouse[data.user].x = data.pos.x * canvas.w;
@@ -49,6 +68,45 @@ const initSocket = () => {
     }
 
   });
+}
+
+// Vergibt einen Controller-Slot an das erste Gerät und weist weitere ab
+function handleJoin(data) {
+  var user = data.user;
+  if (!isPlayer(user) || !data.clientId) return;
+
+  // Slot ist belegt und ein anderes Gerät meldet sich → ablehnen
+  if (owners[user] !== null && owners[user] !== data.clientId) {
+    sendOwnership('rejected', user, data.clientId);
+    return;
+  }
+
+  // Slot ist frei oder dasselbe Gerät meldet sich erneut (z.B. Reload) → annehmen
+  owners[user] = data.clientId;
+  sendOwnership('accepted', user, data.clientId);
+
+  qrcoder.hideOne(user);
+
+  // Direktes Feedback: Schläger "boingt" und folgt ab jetzt dem Controller
+  pad.connect(user);
+  game.lobby();
+
+  // neu verbundenem Controller den aktuellen Spielzustand mitteilen,
+  // damit er den passenden Knopf anzeigt
+  broadcastState();
+}
+
+// Sendet eine an ein bestimmtes Gerät adressierte Besitz-Antwort
+function sendOwnership(type, user, clientId) {
+  if (!connect.socket) return;
+
+  var msg = JSON.stringify({
+    type: type,
+    user: user,
+    clientId: clientId
+  });
+
+  connect.socket.send(msg, connect.user);
 }
 
 // Sendet den aktuellen Spielzustand an alle Controller, damit diese den
@@ -77,6 +135,36 @@ gamesound.triggerAttackRelease("G3", "8n", "+0.4");
 // Margin around the game area
 var margin = { top: 0, left: 0, bottom: 180, right: 0 };
 var color = { playerOne: '#dd1166', playerTwo: '#00AD2F' };
+
+
+// Grundgeschwindigkeit des Spiels, einstellbar per Stepper in server.html.
+// Stufe 1..10, Default 5 = neutral (entspricht der bisherigen Geschwindigkeit).
+// factor(): 5 -> 1.0, 1 -> 0.2, 10 -> 2.0
+var speedControl = new function () {
+  var self = this;
+  self.level = 5;
+
+  self.factor = function () {
+    return self.level / 5;
+  };
+
+  self.set = function (value) {
+    var level = parseInt(value, 10);
+    if (isNaN(level)) level = 5;
+    self.level = Math.min(10, Math.max(1, level));
+  };
+
+  // Mit dem Stepper verdrahten, sobald das DOM bereit ist
+  self.init = function () {
+    var input = document.getElementById('gameSpeed');
+    if (!input) return;
+
+    self.set(input.value);
+    input.addEventListener('input', function () {
+      self.set(input.value);
+    });
+  };
+};
 
 
 // RequestAnimFrame: a browser API for getting smooth animations
@@ -279,9 +367,12 @@ var ball = new function () {
     g = d.getElementsByTagName('body')[0],
     x = w.innerWidth || e.clientWidth || g.clientWidth,
     y = w.innerHeight || e.clientHeight || g.clientHeight;
-  var speed = x / 128;
 
   self.init = function () {
+    // Grundgeschwindigkeit: skaliert mit der Bildschirmbreite und wird
+    // über den Stepper (Stufe 1..10, 5 = neutral) feinjustiert.
+    var speed = (x / 128) * speedControl.factor();
+
     self.x = (startOnLeftSide) ? 100 : canvas.w - 100;
     self.y = (canvas.h - 140) * Math.random() + 70;
     self.r = 10;
@@ -838,9 +929,26 @@ function btnClick(e) {
   }
 }
 
+// Neue Session: Seite neu laden -> frische connect.id und damit neue QR-Codes
+function newSession() {
+  location.reload();
+}
+
 // Show the start screen
 window.addEventListener("load", function () {
   startScreen();
+  speedControl.init();
+
+  var newSessionBtn = document.getElementById('newSessionBtn');
+  if (newSessionBtn) newSessionBtn.addEventListener('click', newSession);
+});
+
+// Taste "N" startet ebenfalls eine neue Session – nicht, während in einem
+// Eingabefeld (z.B. dem Geschwindigkeits-Stepper) getippt wird
+window.addEventListener('keydown', function (e) {
+  var tag = (e.target && e.target.tagName) ? e.target.tagName.toLowerCase() : '';
+  if (tag === 'input' || tag === 'textarea') return;
+  if (e.key === 'n' || e.key === 'N') newSession();
 });
 
 document.body.addEventListener('click', function (event) {
